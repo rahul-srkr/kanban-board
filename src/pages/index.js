@@ -1,124 +1,180 @@
+import Board from '@/components/Board'
+import { BsMoonStars, BsFillSunFill } from "react-icons/bs"
 import Image from 'next/image'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'] })
+import useThemeSwitcher from '@/components/hooks/useThemeSwitcher'
+import Editable from '@/components/Editable'
+import { useEffect, useState } from 'react'
 
 export default function Home() {
+  const [mode, setMode] = useThemeSwitcher()
+
+  const [boards, setBoards] = useState([])
+
+  useEffect(() => {
+    setBoards(JSON.parse(localStorage.getItem('boards')))
+  }, []);
+
+  useEffect(() => {
+    if (boards.length !== 0) {
+      localStorage.setItem("boards", JSON.stringify(boards))
+    }
+  }, [boards]);
+
+  const [target, setTarget] = useState({
+    cid: "",
+    bid: ""
+  });
+
+  const [boardTarget, setBoardTarget] = useState("");
+
+  const addCard = (title, bid) => {
+    const card = {
+      id: Date.now() + Math.random(),
+      title,
+      labels: [],
+      tasks: [],
+      date: "",
+      desc: ""
+    }
+
+    const index = boards.findIndex((item) => item.id === bid)
+    if (index < 0) return
+
+    const tempBoards = [...boards]
+    tempBoards[index].cards.push(card)
+    setBoards(tempBoards)
+  }
+
+  const removeCard = (cid, bid) => {
+    const bIndex = boards.findIndex((item) => item.id === bid)
+    if (bIndex < 0) return
+
+    const cIndex = boards[bIndex].cards.findIndex((item) => item.id === cid)
+    if (cIndex < 0) return
+
+    const tempboards = [...boards]
+    tempboards[bIndex].cards.splice(cIndex, 1)
+    setBoards(tempboards)
+  }
+
+  const addBoard = (title) => {
+    setBoards([...boards, {
+      id: Date.now() + Math.random(),
+      title,
+      cards: []
+    }])
+  }
+
+  const removeBoard = (bid) => {
+    const tempBoards = boards.filter(item => item.id !== bid)
+    setBoards(tempBoards)
+  }
+
+  const handleDragEnter = (cid, bid) => {
+    setTarget({
+      cid,
+      bid
+    })
+  }
+
+  const handleDragEnd = (cid, bid) => {
+    let s_bIndex, s_cIndex, t_bIndex, t_cIndex
+
+    s_bIndex = boards.findIndex((item) => item.id === bid)
+    if (s_bIndex < 0) return
+
+    s_cIndex = boards[s_bIndex].cards.findIndex((item) => item.id === cid)
+    if (s_cIndex < 0) return
+
+    t_bIndex = boards.findIndex((item) => item.id === target.bid)
+    if (t_bIndex < 0) return
+
+    t_cIndex = boards[t_bIndex].cards.findIndex((item) => item.id === target.cid)
+
+    const tempBoards = [...boards]
+    const tempCard = tempBoards[s_bIndex].cards[s_cIndex]
+
+    tempBoards[s_bIndex].cards.splice(s_cIndex, 1)
+
+    if (t_cIndex >= 0) {
+      tempBoards[t_bIndex].cards.splice(t_cIndex, 0, tempCard)
+    } else {
+      tempBoards[t_bIndex].cards.push(tempCard)
+    }
+
+    setBoards(tempBoards)
+  }
+
+  const handleBoardDragEnter = (bid) => {
+    setBoardTarget(bid)
+  }
+
+  const handleBoardDragEnd = (bid) => {
+    let s_bIndex, t_bIndex
+
+    s_bIndex = boards.findIndex((item) => item.id === bid)
+    if (s_bIndex < 0) return
+
+    t_bIndex = boards.findIndex((item) => item.id === boardTarget)
+    if (t_bIndex < 0) return
+
+    const tempBoards = [...boards]
+    const tempBoard = tempBoards[s_bIndex]
+    tempBoards.splice(s_bIndex, 1)
+    tempBoards.splice(t_bIndex, 0, tempBoard)
+    setBoards(tempBoards)
+  }
+
+  const updateCard = (cid, bid, card) => {
+    const bIndex = boards.findIndex((item) => item.id === bid)
+    if (bIndex < 0) return
+
+    const cIndex = boards[bIndex].cards.findIndex((item) => item.id === cid)
+    if (cIndex < 0) return
+
+    const tempBoards = [...boards]
+    tempBoards[bIndex].cards[cIndex] = card
+    setBoards(tempBoards)
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <section className='flex h-screen w-full flex-col bg-light dark:bg-dark text-light dark:text-dark'>
+      <nav className='w-full py-3 px-7 border-b-2 border-primary-light dark:border-primary-dark text-2xl font-bold flex items-center justify-between'>
+        <h2 className='text-primary-light dark:text-primary-dark'>Kanban</h2>
+        <div onClick={() => { mode === "light" ? setMode("dark") : setMode("light") }}>
+          {
+            mode === "dark" ?
+              <BsFillSunFill className="w-5 h-5" /> :
+              <BsMoonStars className='h-5 w-5' />
+          }
+        </div>
+      </nav>
+      <div className='flex-grow w-ful overflow-x-auto p-4 pb-0'>
+        <div className='min-w-fit flex gap-6 h-full'>
+          {
+            boards.map((item) => (
+              <Board
+                key={item.id}
+                board={item}
+                removeBoard={removeBoard}
+                addCard={addCard}
+                removeCard={removeCard}
+                handleDragEnter={handleDragEnter}
+                handleDragEnd={handleDragEnd}
+                handleBoardDragEnd={handleBoardDragEnd}
+                handleBoardDragEnter={handleBoardDragEnter}
+                updateCard={updateCard}
+              />
+            ))
+          }
+          <Editable
+            text='Add Board'
+            placeholder='Enter Board Title'
+            className='bg-cards-light dark:bg-cards-dark border border-primary-light dark:border-primary-dark shadow-[4px_3px_5px_0_rgba(0,0,0,0.75)] rounded-none font-semibold p-3'
+            onSubmit={(value) => addBoard(value)}
+          />
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </section>
   )
 }
