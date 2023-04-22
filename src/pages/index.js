@@ -11,12 +11,16 @@ export default function Home() {
   const [boards, setBoards] = useState([])
 
   useEffect(() => {
-    setBoards(JSON.parse(localStorage.getItem('boards')))
+    if (localStorage.getItem('boards')) {
+      setBoards(JSON.parse(localStorage.getItem('boards')))
+    }
   }, []);
 
   useEffect(() => {
-    if (boards.length !== 0) {
-      localStorage.setItem("boards", JSON.stringify(boards))
+    if (boards) {
+      if (boards.length !== 0) {
+        localStorage.setItem("boards", JSON.stringify(boards))
+      }
     }
   }, [boards]);
 
@@ -152,7 +156,7 @@ export default function Home() {
       <div className='flex-grow w-ful overflow-x-auto p-4 pb-0'>
         <div className='min-w-fit flex gap-6 h-full'>
           {
-            boards.map((item) => (
+            boards && boards.map((item) => (
               <Board
                 key={item.id}
                 board={item}
